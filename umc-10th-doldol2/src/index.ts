@@ -7,7 +7,11 @@ import {
 } from "./modules/users/controllers/user.controller.js";
 import { handleStoreCreate } from "./modules/stores/controllers/store.controller.js";
 import { handleMissionCreate } from "./modules/missions/controllers/mission.controller.js";
-import { handleReviewCreate } from "./modules/reviews/controllers/review.controller.js";
+import {
+  handleReviewCreate,
+  handleListStoreReviews,
+  handleListMyReviews,
+} from "./modules/reviews/controllers/review.controller.js";
 import { pool } from "./modules/users/db.config.js";
 import { initDatabase } from "./modules/users/db.init.js";
 // 1. 환경 변수 설정
@@ -38,6 +42,12 @@ app.post("/api/v1/stores/:storeId/missions", handleMissionCreate);
 
 // 가게에 리뷰 추가
 app.post("/api/v1/stores/:storeId/reviews", handleReviewCreate);
+
+// 가게의 리뷰 목록 조회 (커서 기반 페이지네이션)
+app.get("/api/v1/stores/:storeId/reviews", handleListStoreReviews);
+
+// 내가 작성한 리뷰 목록 조회 (커서 기반 페이지네이션)
+app.get("/api/v1/users/:userId/reviews", handleListMyReviews);
 
 // 미션 도전하기
 app.post("/api/v1/users/:userId/missions", handleMissionChallenge);

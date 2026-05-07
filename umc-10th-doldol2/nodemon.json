@@ -1,0 +1,9 @@
+{
+  "watch": ["src", "prisma"],
+  "ext": "ts,prisma",
+  "ignore": [
+    "src/generated",
+    "node_modules",
+    "dist"
+  ]
+}

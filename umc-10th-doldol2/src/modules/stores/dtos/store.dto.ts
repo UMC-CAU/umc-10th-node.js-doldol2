@@ -14,14 +14,14 @@ export const bodyToStore = (body: StoreCreateRequest) => {
   };
 };
 
-// 3. 응답 변환
+// 3. 응답 변환 (Prisma는 camelCase로 반환)
 export const responseFromStore = (store: any) => {
   return {
     id: store.id,
-    regionId: store.region_id,
+    regionId: store.regionId,
     name: store.name,
     address: store.address,
-    createdAt: store.created_at,
+    createdAt: store.createdAt,
   };
 };
 
