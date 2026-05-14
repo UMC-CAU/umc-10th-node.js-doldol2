@@ -1,10 +1,9 @@
 import dotenv from "dotenv";
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
-import {
-  handleUserSignUp,
-  handleMissionChallenge,
-} from "./modules/users/controllers/user.controller.js";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import { RegisterRoutes } from "./generated/routes.js";
 import { handleStoreCreate } from "./modules/stores/controllers/store.controller.js";
 import { handleMissionCreate } from "./modules/missions/controllers/mission.controller.js";
 import {
@@ -14,49 +13,62 @@ import {
 } from "./modules/reviews/controllers/review.controller.js";
 import { pool } from "./modules/users/db.config.js";
 import { initDatabase } from "./modules/users/db.init.js";
+import { AppError } from "./common/errors/app.error.js";
+
 // 1. 환경 변수 설정
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// 2. 미들웨어 설정
-app.use(cors());            // cors 방식 허용
-app.use(express.static('public'));    // 정적 파일 접근
-app.use(express.json());              // JSON 본문 파싱
-app.use(express.urlencoded({ extended: false })); // urlencoded 본문 파싱
-
-// 3. 라우트
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello World! This is TypeScript Server!");
+// res.error 커스텀 메서드 등록
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.error = function ({ errorCode = null, message = null, data = null }) {
+    return this.json({
+      resultType: "FAIL",
+      error: { errorCode, message, data },
+      success: null,
+    });
+  };
+  next();
 });
 
-// 회원가입
-app.post("/api/v1/users/signup", handleUserSignUp);
+// 2. 미들웨어 설정
+app.use(morgan("dev"));
+app.use(cors());
+app.use(cookieParser());
+app.use(express.static("public"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// 가게 등록
+// 3. TSOA로 생성된 라우트 등록 (users 관련 엔드포인트)
+const router = express.Router();
+RegisterRoutes(router);
+app.use("/api/v1", router);
+
+// 4. 기존 Express 방식 라우트 (아직 TSOA 전환 전)
 app.post("/api/v1/stores", handleStoreCreate);
-
-// 가게에 미션 추가
 app.post("/api/v1/stores/:storeId/missions", handleMissionCreate);
-
-// 가게에 리뷰 추가
 app.post("/api/v1/stores/:storeId/reviews", handleReviewCreate);
-
-// 가게의 리뷰 목록 조회 (커서 기반 페이지네이션)
 app.get("/api/v1/stores/:storeId/reviews", handleListStoreReviews);
-
-// 내가 작성한 리뷰 목록 조회 (커서 기반 페이지네이션)
 app.get("/api/v1/users/:userId/reviews", handleListMyReviews);
 
-// 미션 도전하기
-app.post("/api/v1/users/:userId/missions", handleMissionChallenge);
+// 5. 전역 오류 처리 미들웨어
+app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.statusCode || 500).error({
+    errorCode: err.errorCode || "unknown",
+    message: err.message || null,
+    data: err.data || null,
+  });
+});
 
-// 4. 서버 시작
+// 6. 서버 시작
 app.listen(port, async () => {
   console.log(`[server]: Server is running at <http://localhost>:${port}`);
 
-  // DB 초기화 (없으면 데이터베이스/테이블 생성)
   try {
     await initDatabase();
   } catch (err) {
@@ -64,7 +76,6 @@ app.listen(port, async () => {
     return;
   }
 
-  // DB 연결 헬스체크
   try {
     const conn = await pool.getConnection();
     console.log("[db]: MySQL 연결 성공");

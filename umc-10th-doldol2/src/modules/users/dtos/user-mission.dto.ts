@@ -85,3 +85,13 @@ export const responseFromInProgressMissions = (
     pagination: { cursor: last ? last.id : null },
   };
 };
+
+// 미션 도전/완료 응답 DTO
+export interface UserMissionResponse {
+  id: number;
+  userId: number;
+  missionId: number;
+  status: string;
+  startedAt: Date;
+  completedAt: Date | null;
+}

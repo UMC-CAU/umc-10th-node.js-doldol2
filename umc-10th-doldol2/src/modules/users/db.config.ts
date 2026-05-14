@@ -25,7 +25,39 @@ const adapter = new PrismaMariaDb({
   connectionLimit: 10,
 });
 
-export const prisma = new PrismaClient({
+const basePrisma = new PrismaClient({
   adapter,
-  log: ["query", "info", "error", "warn"], // 쿼리 로그, 에러 로그, 경고 로그를 모두 출력하도록 설정
+  log: ["info", "error", "warn"], // 쿼리 로그는 아래 $extends 에서 ms 단위로 직접 출력
+});
+
+/**
+ * 전역 쿼리 시간 로깅 ($extends)
+ *
+ * 모든 Prisma 모델 호출(findMany, create, update, delete 등)을 가로채
+ * 실행 전/후 시간을 비교해서 ms 로 출력합니다.
+ *
+ * 호출부마다 console.time 을 따로 박지 않아도, 이 한 곳에서 일괄 적용됩니다.
+ */
+export const prisma = basePrisma.$extends({
+  name: "queryTimingLogger",
+  query: {
+    $allModels: {
+      async $allOperations({ model, operation, args, query }) {
+        const startedAt = performance.now();
+        try {
+          const result = await query(args);
+          const elapsed = (performance.now() - startedAt).toFixed(2);
+          console.log(`[Prisma] ${model}.${operation} - ${elapsed}ms`);
+          return result;
+        } catch (err) {
+          const elapsed = (performance.now() - startedAt).toFixed(2);
+          console.error(
+            `[Prisma] ${model}.${operation} FAILED after ${elapsed}ms`,
+            err
+          );
+          throw err;
+        }
+      },
+    },
+  },
 });
