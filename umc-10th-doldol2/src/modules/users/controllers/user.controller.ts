@@ -8,17 +8,24 @@ import {
   Post,
   Query,
   Request,
+  Response,
   Route,
   Tags,
 } from "tsoa";
 import { UserSignUpRequest, UserSignUpResponse } from "../dtos/user.dto.js";
 import { userSignUp } from "../services/user.service.js";
-import { MissionChallengeRequest, InProgressMissionListResponse, UserMissionResponse } from "../dtos/user-mission.dto.js";
+import {
+  MissionChallengeRequest,
+  InProgressMissionListResponse,
+  UserMissionResponse,
+} from "../dtos/user-mission.dto.js";
 import {
   challengeMission,
   listInProgressMissions,
   completeInProgressMission,
 } from "../services/user-mission.service.js";
+import { ReviewListResponse } from "../../reviews/dtos/review.dto.js";
+import { listMyReviews } from "../../reviews/services/review.service.js";
 import { authorizeUser } from "../../../common/middlewares/auth.middleware.js";
 import { ApiResponse, success } from "../../../common/responses/response.js";
 import { Request as ExpressRequest } from "express";
@@ -26,8 +33,13 @@ import { Request as ExpressRequest } from "express";
 @Route("users")
 @Tags("Users")
 export class UserController extends Controller {
-  // 회원가입
+  /**
+   * 회원가입 API
+   * @summary 신규 유저를 등록합니다.
+   */
   @Post("signup")
+  @Response<ApiResponse<UserSignUpResponse>>(200, "회원가입 성공")
+  @Response<ApiResponse<null>>(409, "중복된 이메일 에러 (U001)")
   public async handleUserSignUp(
     @Body() body: UserSignUpRequest,
   ): Promise<ApiResponse<UserSignUpResponse>> {
@@ -37,8 +49,14 @@ export class UserController extends Controller {
     return success(user);
   }
 
-  // 미션 도전하기
+  /**
+   * 미션 도전 API
+   * @summary 특정 유저가 미션에 도전합니다.
+   */
   @Post("{userId}/missions")
+  @Response<ApiResponse<UserMissionResponse>>(200, "미션 도전 성공")
+  @Response<ApiResponse<null>>(404, "유저 또는 미션을 찾을 수 없음 (U002 / M001)")
+  @Response<ApiResponse<null>>(409, "이미 도전 중인 미션 (M002)")
   public async handleMissionChallenge(
     @Path() userId: number,
     @Body() body: MissionChallengeRequest,
@@ -48,8 +66,13 @@ export class UserController extends Controller {
     return success(result);
   }
 
-  // 내가 진행 중인 미션 목록 조회 (커서 기반 페이지네이션)
+  /**
+   * 진행 중인 미션 목록 조회 API
+   * @summary 유저가 진행 중인 미션 목록을 커서 기반 페이지네이션으로 조회합니다.
+   */
   @Get("{userId}/missions")
+  @Response<ApiResponse<InProgressMissionListResponse>>(200, "미션 목록 조회 성공")
+  @Response<ApiResponse<null>>(404, "유저를 찾을 수 없음 (U002)")
   public async handleListInProgressMissions(
     @Path() userId: number,
     @Query() cursor?: number,
@@ -59,14 +82,36 @@ export class UserController extends Controller {
     return success(result);
   }
 
-  // 내가 진행 중인 미션을 진행 완료로 변경
+  /**
+   * 미션 완료 처리 API
+   * @summary 진행 중인 미션을 완료 상태로 변경합니다.
+   */
   @Patch("{userId}/missions/{missionId}")
+  @Response<ApiResponse<UserMissionResponse>>(200, "미션 완료 처리 성공")
+  @Response<ApiResponse<null>>(404, "유저 또는 미션을 찾을 수 없음 (U002 / M001)")
+  @Response<ApiResponse<null>>(400, "진행 중 상태가 아닌 미션 (M003)")
   public async handleCompleteMission(
     @Path() userId: number,
     @Path() missionId: number,
   ): Promise<ApiResponse<UserMissionResponse>> {
     console.log("미션 완료 처리를 요청했습니다!");
     const result = await completeInProgressMission(userId, missionId);
+    return success(result);
+  }
+
+  /**
+   * 내가 작성한 리뷰 목록 조회 API
+   * @summary 특정 유저가 작성한 리뷰 목록을 커서 기반 페이지네이션으로 조회합니다.
+   */
+  @Get("{userId}/reviews")
+  @Response<ApiResponse<ReviewListResponse>>(200, "리뷰 목록 조회 성공")
+  @Response<ApiResponse<null>>(404, "유저를 찾을 수 없음 (U002)")
+  public async handleListMyReviews(
+    @Path() userId: number,
+    @Query() cursor?: number,
+  ): Promise<ApiResponse<ReviewListResponse>> {
+    console.log("내가 작성한 리뷰 목록 조회를 요청했습니다!");
+    const result = await listMyReviews(userId, cursor ?? 0);
     return success(result);
   }
 

@@ -1,11 +1,27 @@
-// 1. 가게 등록 요청 데이터
+// 요청 DTO
 export interface StoreCreateRequest {
+  /** 지역 ID */
   regionId: number;
+  /** 가게 이름 */
   name: string;
+  /** 가게 주소 (선택) */
   address?: string;
 }
 
-// 2. 요청 데이터를 시스템에서 쓰는 형태로 변환
+// 응답 DTO
+export interface StoreResponse {
+  /** 가게 ID */
+  id: number;
+  /** 지역 ID */
+  regionId: number;
+  /** 가게 이름 */
+  name: string;
+  /** 가게 주소 */
+  address: string;
+  /** 생성일시 */
+  createdAt: Date;
+}
+
 export const bodyToStore = (body: StoreCreateRequest) => {
   return {
     regionId: body.regionId,
@@ -14,8 +30,7 @@ export const bodyToStore = (body: StoreCreateRequest) => {
   };
 };
 
-// 3. 응답 변환 (Prisma는 camelCase로 반환)
-export const responseFromStore = (store: any) => {
+export const responseFromStore = (store: any): StoreResponse => {
   return {
     id: store.id,
     regionId: store.regionId,
@@ -25,7 +40,6 @@ export const responseFromStore = (store: any) => {
   };
 };
 
-// 4. 서비스 레이어로 넘기는 데이터 타입
 export interface StoreCreateData {
   regionId: number;
   name: string;

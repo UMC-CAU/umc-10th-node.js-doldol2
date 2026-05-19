@@ -1,9 +1,31 @@
-// 1. 미션 등록 요청 데이터
+// 미션 등록 요청 DTO
 export interface MissionCreateRequest {
+  /** 미션 제목 */
   title: string;
+  /** 미션 내용 (선택) */
   content?: string;
+  /** 리워드 포인트 */
   reward: number;
-  deadline?: string; // YYYY-MM-DD
+  /** 마감 날짜 (예: "2025-12-31", 선택) */
+  deadline?: string;
+}
+
+// 단일 미션 응답 DTO
+export interface MissionResponse {
+  /** 미션 ID */
+  id: number;
+  /** 가게 ID */
+  storeId: number;
+  /** 미션 제목 */
+  title: string;
+  /** 미션 내용 */
+  content: string;
+  /** 리워드 포인트 */
+  reward: number;
+  /** 마감일 */
+  deadline: Date | null;
+  /** 생성일시 */
+  createdAt: Date;
 }
 
 export const bodyToMission = (storeId: number, body: MissionCreateRequest) => {
@@ -16,8 +38,7 @@ export const bodyToMission = (storeId: number, body: MissionCreateRequest) => {
   };
 };
 
-// Prisma는 camelCase로 반환
-export const responseFromMission = (mission: any) => {
+export const responseFromMission = (mission: any): MissionResponse => {
   return {
     id: mission.id,
     storeId: mission.storeId,
@@ -42,12 +63,19 @@ export interface MissionCreateData {
 // ───────────────────────────────────────────────────────────
 
 export interface MissionItem {
+  /** 미션 ID */
   id: number;
+  /** 미션 제목 */
   title: string;
+  /** 미션 내용 */
   content: string;
+  /** 리워드 포인트 */
   reward: number;
+  /** 마감일 */
   deadline: Date | null;
+  /** 생성일시 */
   createdAt: Date;
+  /** 소속 가게 정보 */
   store: {
     id: number;
     name: string;
@@ -55,8 +83,11 @@ export interface MissionItem {
 }
 
 export interface MissionListResponse {
+  /** 미션 목록 */
   data: MissionItem[];
+  /** 페이지네이션 정보 */
   pagination: {
+    /** 다음 페이지 커서 (없으면 null) */
     cursor: number | null;
   };
 }
