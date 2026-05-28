@@ -118,3 +118,54 @@ export const signupTx = async (data: {
     return { user, preferences };
   });
 };
+
+// 6. 유저 정보 수정 (트랜잭션)
+export const updateUserTx = async (
+  userId: number,
+  data: {
+    name?: string;
+    gender?: string;
+    birth?: Date;
+    address?: string;
+    detailAddress?: string;
+    phoneNumber?: string;
+    preferences?: number[];
+  }
+) => {
+  return prisma.$transaction(async (tx) => {
+    // 1) 유저 기본 정보 업데이트 (undefined 필드는 건너뜀)
+    const updated = await tx.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.gender !== undefined && { gender: data.gender }),
+        ...(data.birth !== undefined && { birth: data.birth }),
+        ...(data.address !== undefined && { address: data.address }),
+        ...(data.detailAddress !== undefined && { detailAddress: data.detailAddress }),
+        ...(data.phoneNumber !== undefined && { phoneNumber: data.phoneNumber }),
+      },
+    });
+
+    // 2) 선호 카테고리 전달 시 → 기존 전부 삭제 후 새로 추가
+    if (data.preferences !== undefined) {
+      await tx.userFavorCategory.deleteMany({ where: { userId } });
+      if (data.preferences.length > 0) {
+        await tx.userFavorCategory.createMany({
+          data: data.preferences.map((foodCategoryId) => ({
+            userId,
+            foodCategoryId,
+          })),
+        });
+      }
+    }
+
+    // 3) 최신 선호 카테고리 조회
+    const preferences = await tx.userFavorCategory.findMany({
+      where: { userId },
+      include: { foodCategory: true },
+      orderBy: { foodCategoryId: "asc" },
+    });
+
+    return { user: updated, preferences };
+  });
+};

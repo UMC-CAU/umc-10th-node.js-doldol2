@@ -4,12 +4,14 @@ import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
+import passport from "passport";
 import path from "path";
 import fs from "fs";
 import { RegisterRoutes } from "./generated/routes.js";
 import { pool } from "./modules/users/db.config.js";
 import { initDatabase } from "./modules/users/db.init.js";
 import { AppError } from "./common/errors/app.error.js";
+import { googleStrategy, jwtStrategy } from "./auth.config.js";
 
 // 1. 환경 변수 설정
 dotenv.config();
@@ -17,7 +19,11 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3000;
 
-// 2. CORS 설정
+// 2. Passport 전략 등록
+passport.use(googleStrategy);
+passport.use(jwtStrategy);
+
+// 3. CORS 설정
 const allowedOrigins = (process.env.CORS_ORIGIN ?? "")
   .split(",")
   .map((o) => o.trim())
@@ -43,25 +49,54 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// 3. 공통 미들웨어
+// 4. 공통 미들웨어
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(passport.initialize());
 
-// 4. Swagger UI 연결
+// 5. Swagger UI 연결
 const swaggerFile = JSON.parse(
   fs.readFileSync(path.resolve("dist/swagger.json"), "utf8")
 );
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 
-// 5. TSOA 라우트 등록
+// 6. Google OAuth 라우트
+app.get(
+  "/oauth2/login/google",
+  passport.authenticate("google", { session: false })
+);
+app.get(
+  "/oauth2/callback/google",
+  passport.authenticate("google", { session: false, failureRedirect: "/login-failed" }),
+  (req: Request, res: Response) => {
+    res.status(200).json({ success: true, tokens: req.user });
+  }
+);
+
+// 7. JWT 보호 테스트 라우트
+const isLogin = passport.authenticate("jwt", { session: false });
+
+app.get("/mypage", isLogin, (req: Request, res: Response) => {
+  const user = req.user as any;
+  res.status(200).json({
+    resultType: "SUCCESS",
+    error: null,
+    data: {
+      message: `인증 성공! ${user.name}님의 마이페이지입니다.`,
+      user,
+    },
+  });
+});
+
+// 8. TSOA 라우트 등록
 const router = express.Router();
 RegisterRoutes(router);
 app.use("/api/v1", router);
 
-// 6. 전역 오류 처리 미들웨어
+// 9. 전역 오류 처리 미들웨어
 app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {
     return next(err);
@@ -73,7 +108,7 @@ app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// 7. 서버 시작
+// 10. 서버 시작
 app.listen(port, async () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
   console.log(`[cors]: Allowed origins → ${allowedOrigins.join(", ") || "none"}`);

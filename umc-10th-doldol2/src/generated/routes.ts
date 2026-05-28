@@ -59,6 +59,46 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UserUpdateResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"double","required":true},
+            "email": {"dataType":"string","required":true},
+            "name": {"dataType":"string","required":true},
+            "gender": {"dataType":"string","required":true},
+            "birth": {"dataType":"datetime","required":true},
+            "address": {"dataType":"string","required":true},
+            "detailAddress": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "phoneNumber": {"dataType":"string","required":true},
+            "preferCategory": {"dataType":"array","array":{"dataType":"string"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApiResponse_UserUpdateResponse_": {
+        "dataType": "refObject",
+        "properties": {
+            "resultType": {"dataType":"enum","enums":["SUCCESS"],"required":true},
+            "error": {"dataType":"enum","enums":[null],"required":true},
+            "data": {"ref":"UserUpdateResponse","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UserUpdateRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string"},
+            "gender": {"dataType":"string"},
+            "birth": {"dataType":"string"},
+            "address": {"dataType":"string"},
+            "detailAddress": {"dataType":"string"},
+            "phoneNumber": {"dataType":"string"},
+            "preferences": {"dataType":"array","array":{"dataType":"double"}},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UserMissionResponse": {
         "dataType": "refObject",
         "properties": {
@@ -279,7 +319,6 @@ const models: TsoaRoute.Models = {
     "ReviewCreateRequest": {
         "dataType": "refObject",
         "properties": {
-            "userId": {"dataType":"double","required":true},
             "content": {"dataType":"string","required":true},
             "rating": {"dataType":"double","required":true},
         },
@@ -322,6 +361,37 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'handleUserSignUp',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsUserController_handleUserUpdate: Record<string, TsoaRoute.ParameterSchema> = {
+                userId: {"in":"path","name":"userId","required":true,"dataType":"double"},
+                body: {"in":"body","name":"body","required":true,"ref":"UserUpdateRequest"},
+        };
+        app.patch('/users/:userId',
+            ...(fetchMiddlewares<RequestHandler>(UserController)),
+            ...(fetchMiddlewares<RequestHandler>(UserController.prototype.handleUserUpdate)),
+
+            async function UserController_handleUserUpdate(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsUserController_handleUserUpdate, request, response });
+
+                const controller = new UserController();
+
+              await templateService.apiHandler({
+                methodName: 'handleUserUpdate',
                 controller,
                 response,
                 next,
@@ -700,6 +770,7 @@ export function RegisterRoutes(app: Router) {
         const argsStoreController_handleReviewCreate: Record<string, TsoaRoute.ParameterSchema> = {
                 storeId: {"in":"path","name":"storeId","required":true,"dataType":"double"},
                 body: {"in":"body","name":"body","required":true,"ref":"ReviewCreateRequest"},
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
         };
         app.post('/stores/:storeId/reviews',
             ...(fetchMiddlewares<RequestHandler>(StoreController)),

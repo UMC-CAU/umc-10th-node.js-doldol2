@@ -23,3 +23,30 @@ export const userSignUp = async (data: UserSignUpRequest): Promise<UserSignUpRes
     preferences: result.preferences,
   });
 };
+
+import { UserUpdateRequest, UserUpdateResponse, responseFromUpdatedUser } from "../dtos/user.dto.js";
+import { updateUserTx } from "../repositories/user.repository.js";
+import { UserNotFoundError } from "../../../common/errors/error.js";
+
+export const updateUser = async (
+  userId: number,
+  data: UserUpdateRequest
+): Promise<UserUpdateResponse> => {
+  try {
+    const result = await updateUserTx(userId, {
+      name: data.name,
+      gender: data.gender,
+      birth: data.birth ? new Date(data.birth) : undefined,
+      address: data.address,
+      detailAddress: data.detailAddress,
+      phoneNumber: data.phoneNumber,
+      preferences: data.preferences,
+    });
+    return responseFromUpdatedUser(result.user, result.preferences);
+  } catch (err: any) {
+    if (err?.code === "P2025") {
+      throw new UserNotFoundError("존재하지 않는 사용자입니다.", { userId });
+    }
+    throw err;
+  }
+};

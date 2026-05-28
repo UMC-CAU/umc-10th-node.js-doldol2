@@ -1,7 +1,5 @@
 // 리뷰 작성 요청 DTO
 export interface ReviewCreateRequest {
-  /** 작성자 유저 ID (임시: 로그인 토큰 도입 전까지 body로 전달) */
-  userId: number;
   /** 리뷰 내용 */
   content: string;
   /** 별점 (1~5) */
@@ -24,10 +22,10 @@ export interface ReviewResponse {
   createdAt: Date;
 }
 
-export const bodyToReview = (storeId: number, body: ReviewCreateRequest) => {
+export const bodyToReview = (storeId: number, userId: number, body: ReviewCreateRequest) => {
   return {
     storeId,
-    userId: body.userId,
+    userId,
     content: body.content,
     rating: body.rating,
   };
